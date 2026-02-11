@@ -1182,6 +1182,635 @@ service_management_menu() {
   done
 }
 
+usage_cli() {
+
+  term_width() {
+    local w
+    w="$(tput cols 2>/dev/null)"
+    [[ -z "$w" || "$w" -lt 60 ]] && w=100
+    echo "$w"
+  }
+
+  wrap_line() {
+    local width
+    width="$(term_width)"
+    fold -s -w "$width"
+  }
+
+  disp_p2() { [[ "$1" == "raw" ]] && echo "RAW" || echo "$1"; }
+
+  cat <<'EOF'
+Quick usage (NEW):
+
+  ./taha <side> <method> <PROTO1+PROTO2> <TID> <PEER_IP> <TUN_PORT> [FORWARD_PORTS] [SSH_ID]
+
+SIDE:
+  ir | iran     => IRAN side
+  kh | kharej   => KHAREJ side
+
+METHOD:
+  1 | d | direct      => Direct
+  2 | r | reverse     => Reverse
+EOF
+
+  echo
+  echo "Direct:"
+  echo "  IRAN  : ./taha ir <method> PROTO1+PROTO2  TID KHAREJ_IP TUN_PORT FORWARD_PORTS [SSH_ID]"
+  echo "  KHAREJ: ./taha kh <method> PROTO1+PROTO2  TID IRAN_IP   TUN_PORT"
+
+  echo
+  echo "Reverse:"
+  echo "  IRAN  : ./taha ir <method> PROTO1+PROTO2  TID KHAREJ_IP TUN_PORT"
+  echo "  KHAREJ: ./taha kh <method> PROTO1+PROTO2  TID IRAN_IP   TUN_PORT FORWARD_PORTS [SSH_ID]"
+
+  echo
+  cat <<'EOF'
+Notes:
+- PROTO1+PROTO2 can be: NUM+NUM | NAME+NAME | NUM+NAME | NAME+NUM
+- SSH_ID only required if proto includes ssh (forwarder side)
+- FORWARD_PORTS: 80 | 80,2053 | 2050-2060
+EOF
+
+echo
+echo "For mappings list:"
+echo "  ./taha -m"
+
+}
+usage_map() {
+  term_width() {
+    local w
+    w="$(tput cols 2>/dev/null)"
+    [[ -z "$w" || "$w" -lt 60 ]] && w=100
+    echo "$w"
+  }
+
+  wrap_line() {
+    local width
+    width="$(term_width)"
+    fold -s -w "$width"
+  }
+
+  disp_p2() { [[ "$1" == "raw" ]] && echo "RAW" || echo "$1"; }
+
+  echo
+  echo "DIRECT (method=1|d|direct) mappings:"
+  echo "1+1 = socks5+$(disp_p2 raw) | 1+2 = socks5+tcp | 1+3 = socks5+icmp | 1+4 = socks5+ssh |" | wrap_line
+  echo "2+1 = icmp+$(disp_p2 raw) | 2+2 = icmp+ws | 2+3 = icmp+tcp | 2+4 = icmp+otls | 2+5 = icmp+ftcp | 2+6 = icmp+relay | 2+7 = icmp+ssh |" | wrap_line
+  echo "3+1 = tls+$(disp_p2 raw) | 3+2 = tls+ws | 3+3 = tls+tcp | 3+4 = tls+icmp | 3+5 = tls+socks5 | 3+6 = tls+relay | 3+7 = tls+ssh |" | wrap_line
+  echo "4+1 = otls+$(disp_p2 raw) | 4+2 = otls+ws | 4+3 = otls+tcp | 4+4 = otls+icmp | 4+5 = otls+socks5 | 4+6 = otls+relay | 4+7 = otls+ssh |" | wrap_line
+  echo "5+1 = relay+$(disp_p2 raw) | 5+2 = relay+ws | 5+3 = relay+wss | 5+4 = relay+mws | 5+5 = relay+mwss | 5+6 = relay+tcp | 5+7 = relay+icmp | 5+8 = relay+socks5 | 5+9 = relay+relay | 5+10 = relay+ssh |" | wrap_line
+  echo "6+1 = ssh+$(disp_p2 raw) |" | wrap_line
+  echo "7+1 = ftcp+$(disp_p2 raw) |" | wrap_line
+
+  echo
+  echo "REVERSE (method=2|r|reverse) mappings:"
+  echo "1+1 = relay+$(disp_p2 raw) | 1+2 = relay+ws | 1+3 = relay+tcp | 1+4 = relay+otls | 1+5 = relay+icmp |" | wrap_line
+  echo "2+1 = socks5+$(disp_p2 raw) | 2+2 = socks5+tcp | 2+3 = socks5+otls | 2+4 = socks5+icmp | 2+5 = socks5+relay |" | wrap_line
+
+  echo
+  echo "Examples:"
+  echo "  ./taha ir d tls+ws   9 10.20.30.40 443 2052,2053"
+  echo "  ./taha ir 1 3+2      9 10.20.30.40 443 2052,2053"
+  echo "  ./taha ir direct ssh+raw 9 10.20.30.40 443 2052,2053 5"
+  echo
+  echo "  ./taha kh 1 tls+ws   9 10.20.30.41 443"
+  echo "  ./taha kh r relay+ws 9 10.20.30.41 443 2052,2053"
+
+  echo
+  echo "Mixed proto examples:"
+  echo "  3+ws     = tls+ws"
+  echo "  tls+2    = tls+ws"
+  echo "  5+ssh    = relay+ssh"
+  echo "  relay+10 = relay+ssh"
+  echo "  socks+1  = socks5+RAW"
+}
+
+
+parse_ports_spec() {
+  local raw="$1"
+  raw="$(sanitize_input "$raw")"
+  raw="${raw// /}"
+  [[ -z "$raw" ]] && return 1
+
+  local -a ports=()
+  local ok=1
+
+  if [[ "$raw" =~ ^[0-9]+$ ]]; then
+    valid_port "$raw" && ports+=("$raw") || ok=0
+
+  elif [[ "$raw" =~ ^[0-9]+-[0-9]+$ ]]; then
+    local s="${raw%-*}"
+    local e="${raw#*-}"
+    if valid_port "$s" && valid_port "$e" && ((10#$s<=10#$e)); then
+      local p
+      for ((p=10#$s; p<=10#$e; p++)); do ports+=("$p"); done
+    else
+      ok=0
+    fi
+
+  elif [[ "$raw" =~ ^[0-9]+(,[0-9]+)+$ ]]; then
+    IFS=',' read -r -a parts <<<"$raw"
+    local part
+    for part in "${parts[@]}"; do
+      valid_port "$part" && ports+=("$part") || { ok=0; break; }
+    done
+  else
+    ok=0
+  fi
+
+  ((ok==0)) && return 1
+
+  mapfile -t PORT_LIST < <(printf "%s\n" "${ports[@]}" | awk '!seen[$0]++' | sort -n)
+  PORT_SPEC="$raw"
+  return 0
+}
+
+proto_direct_p1() {
+  case "$1" in
+    1) echo "socks5" ;;
+    2) echo "icmp" ;;
+    3) echo "tls" ;;
+    4) echo "otls" ;;
+    5) echo "relay" ;;
+    6) echo "ssh" ;;
+    7) echo "ftcp" ;;
+    *) return 1 ;;
+  esac
+}
+
+proto_reverse_p1() {
+  case "$1" in
+    1) echo "relay" ;;
+    2) echo "socks5" ;;
+    *) return 1 ;;
+  esac
+}
+
+normalize_method() {
+  local m
+  m="$(sanitize_input "${1:-}")"
+  m="$(echo "$m" | tr 'A-Z' 'a-z')"
+
+  case "$m" in
+    1|d|dir|direct) echo "1" ;;
+    2|r|rev|reverse) echo "2" ;;
+    *) return 1 ;;
+  esac
+}
+
+
+proto2_from_p1_direct() {
+  local p1="$1" p2n="$2"
+  case "$p1" in
+    socks5)
+      case "$p2n" in 1)echo raw;;2)echo tcp;;3)echo icmp;;4)echo ssh;;*)return 1;; esac ;;
+    icmp)
+      case "$p2n" in 1)echo raw;;2)echo ws;;3)echo tcp;;4)echo otls;;5)echo ftcp;;6)echo relay;;7)echo ssh;;*)return 1;; esac ;;
+    tls|otls)
+      case "$p2n" in 1)echo raw;;2)echo ws;;3)echo tcp;;4)echo icmp;;5)echo socks5;;6)echo relay;;7)echo ssh;;*)return 1;; esac ;;
+    relay)
+      case "$p2n" in
+        1)echo raw;;2)echo ws;;3)echo wss;;4)echo mws;;5)echo mwss;;
+        6)echo tcp;;7)echo icmp;;8)echo socks5;;9)echo relay;;10)echo ssh;;
+        *)return 1;;
+      esac ;;
+    ssh|ftcp)
+      case "$p2n" in 1)echo raw;;*)return 1;; esac ;;
+    *) return 1 ;;
+  esac
+}
+
+proto2_from_p1_reverse() {
+  local p1="$1" p2n="$2"
+  case "$p1" in
+    relay)
+      case "$p2n" in 1)echo raw;;2)echo ws;;3)echo tcp;;4)echo otls;;5)echo icmp;;*)return 1;; esac ;;
+    socks5)
+      case "$p2n" in 1)echo raw;;2)echo tcp;;3)echo otls;;4)echo icmp;;5)echo relay;;*)return 1;; esac ;;
+    *) return 1 ;;
+  esac
+}
+
+parse_proto_spec() {
+  local spec="$1"
+  spec="$(sanitize_input "$spec")"
+  spec="${spec// /}"
+  [[ "$spec" =~ ^([^+]+)\+([^+]+)$ ]] || return 1
+  P1TOK="${BASH_REMATCH[1]}"
+  P2TOK="${BASH_REMATCH[2]}"
+  return 0
+}
+norm_tok() {
+  local t="$1"
+  t="$(sanitize_input "$t")"
+  t="${t// /}"
+  echo "$t" | tr 'A-Z' 'a-z'
+}
+
+tok_kind() { [[ "$1" =~ ^[0-9]+$ ]] && echo "num" || echo "name"; }
+
+proto_direct_p1_name() {
+  case "$(norm_tok "$1")" in
+    socks5|socks) echo "socks5" ;;
+    icmp) echo "icmp" ;;
+    tls) echo "tls" ;;
+    otls) echo "otls" ;;
+    relay) echo "relay" ;;
+    ssh) echo "ssh" ;;
+    ftcp) echo "ftcp" ;;
+    *) return 1 ;;
+  esac
+}
+proto_reverse_p1_name() {
+  case "$(norm_tok "$1")" in
+    relay) echo "relay" ;;
+    socks5|socks) echo "socks5" ;;
+    *) return 1 ;;
+  esac
+}
+
+proto2_direct_name_for_p1() {
+  local p1="$1" p2="$(norm_tok "$2")"
+  case "$p1" in
+    socks5)
+      case "$p2" in raw|tcp|icmp|ssh) echo "$p2" ;; *) return 1;; esac ;;
+    icmp)
+      case "$p2" in raw|ws|tcp|otls|ftcp|relay|ssh) echo "$p2" ;; *) return 1;; esac ;;
+    tls|otls)
+      case "$p2" in raw|ws|tcp|icmp|socks5|socks|relay|ssh)
+        [[ "$p2" == "socks" ]] && p2="socks5"
+        echo "$p2"
+      ;; *) return 1;; esac ;;
+    relay)
+      case "$p2" in raw|ws|wss|mws|mwss|tcp|icmp|socks5|socks|relay|ssh)
+        [[ "$p2" == "socks" ]] && p2="socks5"
+        echo "$p2"
+      ;; *) return 1;; esac ;;
+    ssh|ftcp)
+      [[ "$p2" == "raw" ]] && echo "raw" || return 1 ;;
+    *) return 1 ;;
+  esac
+}
+
+proto2_reverse_name_for_p1() {
+  local p1="$1" p2="$(norm_tok "$2")"
+  case "$p1" in
+    relay)
+      case "$p2" in raw|ws|tcp|otls|icmp) echo "$p2" ;; *) return 1;; esac ;;
+    socks5)
+      case "$p2" in raw|tcp|otls|icmp|relay) echo "$p2" ;; *) return 1;; esac ;;
+    *) return 1 ;;
+  esac
+}
+
+resolve_proto_pair() {
+  local method="$1"
+  local t1="$2" t2="$3"
+
+  t1="$(norm_tok "$t1")"
+  t2="$(norm_tok "$t2")"
+
+  if [[ "$method" == "1" ]]; then
+    if [[ "$(tok_kind "$t1")" == "num" ]]; then
+      PROTO1="$(proto_direct_p1 "$t1")" || return 1
+    else
+      PROTO1="$(proto_direct_p1_name "$t1")" || return 1
+    fi
+
+    if [[ "$(tok_kind "$t2")" == "num" ]]; then
+      PROTO2="$(proto2_from_p1_direct "$PROTO1" "$t2")" || return 1
+    else
+      PROTO2="$(proto2_direct_name_for_p1 "$PROTO1" "$t2")" || return 1
+    fi
+    return 0
+  fi
+
+  if [[ "$(tok_kind "$t1")" == "num" ]]; then
+    PROTO1="$(proto_reverse_p1 "$t1")" || return 1
+  else
+    PROTO1="$(proto_reverse_p1_name "$t1")" || return 1
+  fi
+
+  if [[ "$(tok_kind "$t2")" == "num" ]]; then
+    PROTO2="$(proto2_from_p1_reverse "$PROTO1" "$t2")" || return 1
+  else
+    PROTO2="$(proto2_reverse_name_for_p1 "$PROTO1" "$t2")" || return 1
+  fi
+  return 0
+}
+
+
+need_ssh_id() {
+  [[ "$PROTO1" == "ssh" || "$PROTO2" == "ssh" ]]
+}
+
+
+make_direct_iran_cli() {
+  ensure_gost_installed || return 1
+  local tid="$1" kh_ip="$2" tun_port="$3" portspec="$4" sshid="${5:-}"
+
+  valid_id_1_99 "$tid" || { echo "Invalid TID"; return 1; }
+  valid_ipv4 "$kh_ip" || { echo "Invalid KHAREJ IP"; return 1; }
+  valid_port "$tun_port" || { echo "Invalid tunnel port"; return 1; }
+  parse_ports_spec "$portspec" || { echo "Invalid forward ports: $portspec"; return 1; }
+
+  if need_ssh_id; then
+    valid_id_1_99 "$sshid" || { echo "SSH_ID required/invalid"; return 1; }
+  fi
+
+  local svc="gost-iran-${tid}.service"
+  local svc_path="${SYS_DIR}/${svc}"
+  local keydir forward_uri execstart
+
+  keydir="$(ssh_key_dir)"
+
+  if [[ "$PROTO2" == "raw" ]]; then
+    if need_ssh_id; then
+      forward_uri="${PROTO1}://root@${kh_ip}:${tun_port}?identity=${keydir}/iran${sshid}_ed25519"
+    else
+      forward_uri="${PROTO1}://${kh_ip}:${tun_port}"
+    fi
+  else
+    if need_ssh_id; then
+      forward_uri="${PROTO1}+${PROTO2}://root@${kh_ip}:${tun_port}?identity=${keydir}/iran${sshid}_ed25519"
+    else
+      forward_uri="${PROTO1}+${PROTO2}://${kh_ip}:${tun_port}"
+    fi
+  fi
+
+  execstart="$(make_execstart_forwarder_F "tcp" "$PORT_SPEC" "$forward_uri")"
+
+  write_atomic "$svc_path" <<EOF
+[Unit]
+Description=gost-iran-${tid}
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=root
+LimitNOFILE=1048576
+TasksMax=infinity
+ExecStart=${execstart}
+Restart=always
+RestartSec=1
+KillMode=process
+TimeoutStopSec=10
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+  enable_start "$svc"
+  show_status "$svc"
+}
+
+make_direct_kharej_cli() {
+  ensure_gost_installed || return 1
+  local tid="$1" ir_ip="$2" tun_port="$3"
+
+  valid_id_1_99 "$tid" || { echo "Invalid TID"; return 1; }
+  valid_ipv4 "$ir_ip" || { echo "Invalid IRAN IP"; return 1; }
+  valid_port "$tun_port" || { echo "Invalid tunnel port"; return 1; }
+
+  local svc="gost-kharej-${tid}.service"
+  local svc_path="${SYS_DIR}/${svc}"
+  local listen_uri
+
+  listen_uri="$(build_listen_uri_admission "$PROTO1" "$PROTO2" "$tun_port" "$ir_ip" "0")"
+
+  write_atomic "$svc_path" <<EOF
+[Unit]
+Description=gost-kharej-${tid}
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=root
+LimitNOFILE=1048576
+TasksMax=infinity
+ExecStart=${GOST_BIN} -L "${listen_uri}"
+Restart=always
+RestartSec=1
+KillMode=process
+TimeoutStopSec=10
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+  enable_start "$svc"
+  show_status "$svc"
+}
+
+make_reverse_iran_cli() {
+  ensure_gost_installed || return 1
+  local tid="$1" kh_ip="$2" tun_port="$3"
+
+  valid_id_1_99 "$tid" || { echo "Invalid TID"; return 1; }
+  valid_ipv4 "$kh_ip" || { echo "Invalid KHAREJ IP"; return 1; }
+  valid_port "$tun_port" || { echo "Invalid tunnel port"; return 1; }
+
+  local svc="gost-iran-${tid}.service"
+  local svc_path="${SYS_DIR}/${svc}"
+  local listen_uri
+
+  listen_uri="$(build_listen_uri_admission "$PROTO1" "$PROTO2" "$tun_port" "$kh_ip" "1")"
+
+  write_atomic "$svc_path" <<EOF
+[Unit]
+Description=gost-iran-${tid}
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=root
+LimitNOFILE=1048576
+TasksMax=infinity
+ExecStart=${GOST_BIN} -L "${listen_uri}"
+Restart=always
+RestartSec=1
+KillMode=process
+TimeoutStopSec=10
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+  enable_start "$svc"
+  show_status "$svc"
+}
+
+make_reverse_kharej_cli() {
+  ensure_gost_installed || return 1
+  local tid="$1" ir_ip="$2" tun_port="$3" portspec="$4" sshid="${5:-}"
+
+  valid_id_1_99 "$tid" || { echo "Invalid TID"; return 1; }
+  valid_ipv4 "$ir_ip" || { echo "Invalid IRAN IP"; return 1; }
+  valid_port "$tun_port" || { echo "Invalid tunnel port"; return 1; }
+  parse_ports_spec "$portspec" || { echo "Invalid forward ports: $portspec"; return 1; }
+
+  if need_ssh_id; then
+    valid_id_1_99 "$sshid" || { echo "SSH_ID required/invalid"; return 1; }
+  fi
+
+  local svc="gost-kharej-${tid}.service"
+  local svc_path="${SYS_DIR}/${svc}"
+  local keydir forward_uri execstart
+
+  keydir="$(ssh_key_dir)"
+
+  if [[ "$PROTO2" == "raw" ]]; then
+    if need_ssh_id; then
+      forward_uri="${PROTO1}://root@${ir_ip}:${tun_port}?identity=${keydir}/kharej${sshid}_ed25519"
+    else
+      forward_uri="${PROTO1}://${ir_ip}:${tun_port}"
+    fi
+  else
+    if need_ssh_id; then
+      forward_uri="${PROTO1}+${PROTO2}://root@${ir_ip}:${tun_port}?identity=${keydir}/kharej${sshid}_ed25519"
+    else
+      forward_uri="${PROTO1}+${PROTO2}://${ir_ip}:${tun_port}"
+    fi
+  fi
+
+  execstart="$(make_execstart_forwarder_F "rtcp" "$PORT_SPEC" "$forward_uri")"
+
+  write_atomic "$svc_path" <<EOF
+[Unit]
+Description=gost-kharej-${tid}
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=root
+LimitNOFILE=1048576
+TasksMax=infinity
+ExecStart=${execstart}
+Restart=always
+RestartSec=1
+KillMode=process
+TimeoutStopSec=10
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+  enable_start "$svc"
+  show_status "$svc"
+}
+
+cli_main() {
+  ensure_root "$@"
+
+  case "${1:-}" in
+    -h|--help|-help|help)
+      usage_cli
+      return 0
+      ;;
+    -m|-map|--map)
+      usage_map
+      return 0
+      ;;
+    -menu|--menu|menu)
+      add_log "TaHa Tunnel Manager"
+      main_menu
+      exit 0
+      ;;
+  esac
+
+
+  case "${1:-}" in
+    -h|--help|-help|help)
+      usage_cli
+      return 0
+      ;;
+    -m|-map|--map)
+      usage_map
+      return 0
+      ;;
+  esac
+
+  if (( $# == 0 )); then
+    return 99
+  fi
+
+  local side_arg="${1:-}"
+  shift || true
+
+  case "$side_arg" in
+    ir|iran|IR|IRAN) SIDE="IRAN" ;;
+    kh|kharej|KH|KHAREJ) SIDE="KHAREJ" ;;
+    *)
+      usage_cli
+      echo
+      echo "Hint: use ./taha -m to see mappings"
+      return 1
+      ;;
+  esac
+
+  local method_raw="${1:-}"
+  local method=""
+  local protospec="${2:-}"
+  local tid="${3:-}"
+  local peer_ip="${4:-}"
+  local tun_port="${5:-}"
+  local forward_ports="${6:-}"
+  local sshid="${7:-}"
+
+  method="$(normalize_method "$method_raw")" || {
+    echo "Invalid method: $method_raw (use: 1/2 or d/r or direct/reverse)"
+    echo "Hint: use ./taha -h"
+    return 1
+  }
+
+  if [[ -z "$protospec" || -z "$tid" || -z "$peer_ip" || -z "$tun_port" ]]; then
+    usage_cli
+    return 1
+  fi
+
+  parse_proto_spec "$protospec" || {
+    echo "Invalid proto spec: $protospec"
+    echo "Hint: use ./taha -m to see mappings"
+    return 1
+  }
+
+  if ! resolve_proto_pair "$method" "$P1TOK" "$P2TOK"; then
+    echo "Invalid proto combination"
+    echo "Hint: use ./taha -m to see mappings"
+    return 1
+  fi
+
+  if [[ "$method" == "1" ]]; then
+    if [[ "$SIDE" == "IRAN" ]]; then
+      [[ -n "$forward_ports" ]] || { echo "Forward ports required on IRAN direct."; return 1; }
+      make_direct_iran_cli "$tid" "$peer_ip" "$tun_port" "$forward_ports" "$sshid"
+    else
+      make_direct_kharej_cli "$tid" "$peer_ip" "$tun_port"
+    fi
+  else
+    if [[ "$SIDE" == "IRAN" ]]; then
+      make_reverse_iran_cli "$tid" "$peer_ip" "$tun_port"
+    else
+      [[ -n "$forward_ports" ]] || { echo "Forward ports required on KHAREJ reverse."; return 1; }
+      make_reverse_kharej_cli "$tid" "$peer_ip" "$tun_port" "$forward_ports" "$sshid"
+    fi
+  fi
+}
+
+
+
 main_menu() {
   local choice=""
   while true; do
@@ -1214,6 +1843,28 @@ main_menu() {
   done
 }
 
-ensure_root "$@"
-add_log "TaHa Teunnel Manager"
-main_menu
+main() {
+  ensure_root "$@"
+
+  if (( $# == 0 )); then
+    add_log "TaHa Tunnel Manager"
+    main_menu
+    return 0
+  fi
+
+  cli_main "$@"
+  rc=$?
+
+  if (( rc == 99 )); then
+    add_log "TaHa Tunnel Manager"
+    main_menu
+    return 0
+  fi
+
+  return "$rc"
+}
+
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+  main "$@"
+  exit $?
+fi
