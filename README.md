@@ -4,7 +4,7 @@
 <img width="794" height="531" alt="image" src="https://github.com/user-attachments/assets/f0319ebf-de64-4d37-8ead-e0c21fe4c985" />
 
 ## 🚀 نصب و اجرا
-    wget -O taha.sh "https://raw.githubusercontent.com/ToolSeRF/TaHa-Direct-Reverse-Tunnel-Runner/main/taha.sh?$(date +%s)" && chmod +x taha.sh && bash taha.sh
+    wget -O taha "https://raw.githubusercontent.com/ToolSeRF/TaHa-Direct-Reverse-Tunnel-Runner/main/taha?$(date +%s)" && chmod +x taha && bash ./taha
 
 ## 🧭 ساختار،آموزش و نکات
 ## آموزش راه اندازی
