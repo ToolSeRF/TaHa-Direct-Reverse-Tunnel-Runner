@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+set +e
+set +u
+
+DIR="$(cd "$(dirname "$0")" && pwd)"
+TAHA_SH="$DIR/taha.sh"
+TAHA_URL='https://raw.githubusercontent.com/ToolSeRF/TaHa-Direct-Reverse-Tunnel-Runner/main/taha.sh'
+
+if [[ ! -f "$TAHA_SH" ]]; then
+  echo "[INFO] taha.sh not found. Downloading from GitHub..."
+  if command -v wget >/dev/null 2>&1; then
+    wget -q -O "$TAHA_SH" "${TAHA_URL}?$(date +%s)" || {
+      echo "[ERROR] Download failed (wget)."
+      exit 1
+    }
+  elif command -v curl >/dev/null 2>&1; then
+    curl -fsSL "${TAHA_URL}?$(date +%s)" -o "$TAHA_SH" || {
+      echo "[ERROR] Download failed (curl)."
+      exit 1
+    }
+  else
+    echo "[ERROR] Neither wget nor curl found. Install one of them."
+    exit 1
+  fi
+  chmod +x "$TAHA_SH" || true
+fi
+
+if [[ ! -s "$TAHA_SH" ]]; then
+  echo "[ERROR] taha.sh is empty or invalid."
+  exit 1
+fi
+
+source "$TAHA_SH"
+
+if (( $# == 0 )); then
+  add_log "TaHa Tunnel Manager"
+  main_menu
+  exit 0
+fi
+
+case "$1" in
+  -menu|--menu|menu)
+    add_log "TaHa Tunnel Manager"
+    main_menu
+    exit 0
+    ;;
+esac
+
+cli_main "$@"
+rc=$?
+
+if (( rc == 99 )); then
+  add_log "TaHa Tunnel Manager"
+  main_menu
+  exit 0
+fi
+
+exit "$rc"
