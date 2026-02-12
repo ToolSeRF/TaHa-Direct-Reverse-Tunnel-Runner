@@ -75,7 +75,7 @@
 ./taha kharej reverse 1+2 9 10.20.30.41 443 2052,2053
 
 # مثال SSH (نیازمند SSH_ID)
-./taha 1 direct ssh+raw 9 10.20.30.40 443 2052,2053 5
+./taha ir direct ssh+raw 9 10.20.30.40 443 2052,2053 5
 ```
 
 ---
