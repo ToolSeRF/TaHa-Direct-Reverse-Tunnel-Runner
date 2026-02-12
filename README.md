@@ -65,14 +65,14 @@
 ./taha kh 1 tls+ws 9 10.20.30.41 443
 
 # Direct - سمت ایران (forwarder)
-./taha ir d tls+ws 9 10.20.30.40 443 2052,2053
+./taha ir d 3+ws 9 10.20.30.40 443 2052,2053
 
 
 # Reverse - - سمت ایران 
-./taha iran r relay+ws 9 10.20.30.41 443
+./taha iran r relay+2 9 10.20.30.41 443
 
 # Reverse - سمت خارج (forwarder)
-./taha kharej reverse relay+ws 9 10.20.30.41 443 2052,2053
+./taha kharej reverse 1+2 9 10.20.30.41 443 2052,2053
 
 # مثال SSH (نیازمند SSH_ID)
 ./taha 1 direct ssh+raw 9 10.20.30.40 443 2052,2053 5
