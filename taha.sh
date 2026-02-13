@@ -1822,7 +1822,8 @@ main_menu() {
     echo "5) Service Reset CronJob"
     echo "6) SSH Key Generator"	
     echo "7) Optimizer"
-    echo "8) Uninstall"
+    echo "8) RUN WEB PANEL"
+    echo "9) Uninstall"
     echo "0) Exit"
     echo
     read -r -e -p "Select option: " choice
@@ -1836,7 +1837,36 @@ main_menu() {
       5) add_log "Menu: Reset CronJob"; service_reset_cronjob_menu ;;
       6) add_log "Menu: SSH Key Generator"; ssh_key_generator_menu ;;	  
       7) add_log "Menu: Optimizer"; optimizer_menu ;;
-      8) add_log "Menu: Uninstall"; uninstall_menu ;;
+      8)
+        add_log "Menu: Web Panel"
+
+        SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+        PANEL_SCRIPT="$SCRIPT_DIR/taha-webui.sh"
+        PANEL_URL="https://raw.githubusercontent.com/ToolSeRF/TaHa-Direct-Reverse-Tunnel-Runner/refs/heads/main/taha-webui.sh"
+
+        if [[ ! -f "$PANEL_SCRIPT" ]]; then
+          add_log "Panel script not found. Downloading..."
+
+          if command -v curl >/dev/null 2>&1; then
+            curl -fsSL "$PANEL_URL" -o "$PANEL_SCRIPT"
+          else
+            wget -q "$PANEL_URL" -O "$PANEL_SCRIPT"
+          fi
+
+          if [[ ! -s "$PANEL_SCRIPT" ]]; then
+            add_log "Download failed!"
+            render
+            pause_enter
+            break
+          fi
+
+          chmod +x "$PANEL_SCRIPT"
+          add_log "Downloaded successfully."
+        fi
+
+        bash "$PANEL_SCRIPT"
+        ;;
+      9) add_log "Menu: Uninstall"; uninstall_menu ;;
       0) add_log "Bye"; render; exit 0 ;;
       *) add_log "Invalid option: $choice" ;;
     esac
