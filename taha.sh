@@ -252,6 +252,37 @@ ssh_key_generator_menu() {
   done
 }
 
+ask_custom_proto() {
+  local raw=""
+  while true; do
+    render
+    read -r -e -p "whats your custom proto?(format : proto1+proto2) " raw
+    raw="$(sanitize_input "$raw")"
+    raw="${raw// /}"
+
+    if [[ ! "$raw" =~ ^[^+]+\+[^+]+$ ]]; then
+      add_log "Invalid format. Example: tcp+icmp"
+      continue
+    fi
+
+    local t1="${raw%%+*}"
+    local t2="${raw#*+}"
+
+    t1="$(norm_tok "$t1")"
+    t2="$(norm_tok "$t2")"
+
+    if [[ -z "$t1" || -z "$t2" ]]; then
+      add_log "Invalid proto tokens"
+      continue
+    fi
+
+    PROTO1="$t1"
+    PROTO2="$t2"
+    add_log "Selected custom: ${PROTO1}+${PROTO2}"
+    return 0
+  done
+}
+
 
 ask_until_valid() {
   local prompt="$1" validator="$2" __var="$3"
@@ -726,10 +757,12 @@ direct_proto_menu() {
     echo "5) RELAY"
     echo "6) SSH"
     echo "7) FTCP"
+    echo "8) Custom"
     echo "0) Back"
     echo
     read -r -e -p "Select proto1: " p1
     p1="$(sanitize_input "$p1")"
+
     case "$p1" in
       1) PROTO1="socks5" ;;
       2) PROTO1="icmp" ;;
@@ -738,11 +771,24 @@ direct_proto_menu() {
       5) PROTO1="relay" ;;
       6) PROTO1="ssh" ;;
       7) PROTO1="ftcp" ;;
+      8) PROTO1="__custom__" ;;
       0) return 0 ;;
       *) add_log "Invalid proto1"; continue ;;
     esac
     break
   done
+
+  if [[ "$PROTO1" == "__custom__" ]]; then
+    ask_custom_proto || return 0
+    if ! select_side_and_build; then return 0; fi
+
+    if [[ "$SIDE" == "IRAN" ]]; then
+      make_direct_iran
+    else
+      make_direct_kharej
+    fi
+    return 0
+  fi
 
   case "$PROTO1" in
     socks5)
@@ -772,6 +818,7 @@ direct_proto_menu() {
   fi
 }
 
+
 reverse_proto_menu() {
   local p1=""
   while true; do
@@ -779,6 +826,7 @@ reverse_proto_menu() {
     echo "Reverse Method"
     echo "1) RELAY"
     echo "2) SOCKS5"
+    echo "3) Custom"
     echo "0) Back"
     echo
     read -r -e -p "Select proto1: " p1
@@ -786,11 +834,24 @@ reverse_proto_menu() {
     case "$p1" in
       1) PROTO1="relay" ;;
       2) PROTO1="socks5" ;;
+      3) PROTO1="__custom__" ;;
       0) return 0 ;;
       *) add_log "Invalid proto1"; continue ;;
     esac
     break
   done
+
+  if [[ "$PROTO1" == "__custom__" ]]; then
+    ask_custom_proto || return 0
+    if ! select_side_and_build; then return 0; fi
+
+    if [[ "$SIDE" == "IRAN" ]]; then
+      make_reverse_iran
+    else
+      make_reverse_kharej
+    fi
+    return 0
+  fi
 
   if [[ "$PROTO1" == "relay" ]]; then
     proto2_menu "Reverse Method (proto1=$PROTO1)" raw ws tcp otls icmp || return 0
@@ -1787,10 +1848,16 @@ cli_main() {
   }
 
   if ! resolve_proto_pair "$method" "$P1TOK" "$P2TOK"; then
-    echo "Invalid proto combination"
-    echo "Hint: use ./taha -m to see mappings"
-    return 1
+    if [[ "$(tok_kind "$P1TOK")" == "name" && "$(tok_kind "$P2TOK")" == "name" ]]; then
+      PROTO1="$(norm_tok "$P1TOK")"
+      PROTO2="$(norm_tok "$P2TOK")"
+    else
+      echo "Invalid proto combination"
+      echo "Hint: use ./taha -m to see mappings"
+      return 1
+    fi
   fi
+
 
   if [[ "$method" == "1" ]]; then
     if [[ "$SIDE" == "IRAN" ]]; then
