@@ -3,9 +3,9 @@
 را فراهم میکند.در صورت استقبال proto های بیشتر ( هرچند عملکرد ضعیف تری خواهند داشت در این شرایط) اضافه خواهد شد.
 
 ## 🚀 پنل تحت وب - پروتکل دلخواه اضافه شد 
-    wget -O taha-webui.sh "https://raw.githubusercontent.com/ToolSeRF/TaHa-Direct-Reverse-Tunnel-Runner/main/taha-webui.sh?$(date +%s)" && chmod +x taha-webui.sh && bash taha-webui.sh
+    wget -O taha-webui.sh "https://raw.githubusercontent.com/ToolSeRF/TaHa-Direct-Reverse-Tunnel-Runner/main/v1/taha-webui.sh?$(date +%s)" && chmod +x taha-webui.sh && bash taha-webui.sh
 
-0. قابلیت پروتکل دلخواه اضافه شده، میتوانید از هم اکنون ترکیب دلخواه خودتون رو استفاده کنید، [مشاهده ی تمام ترکیب ها](https://raw.githubusercontent.com/ToolSeRF/TaHa-Direct-Reverse-Tunnel-Runner/refs/heads/main/all)
+0. قابلیت پروتکل دلخواه اضافه شده، میتوانید از هم اکنون ترکیب دلخواه خودتون رو استفاده کنید، [مشاهده ی تمام ترکیب ها](https://raw.githubusercontent.com/ToolSeRF/TaHa-Direct-Reverse-Tunnel-Runner/refs/heads/main/v1/all)
 1.  می توانید پنل تحت وب را روی یکی از سرورهای ایران، خارج، یا یک سرور واسط دیگر برای مدیریت و اجرای تانل نصب کنید. ***نصب روی یک سرور کافیست***
 2.  سپس از طریق دکمه ی Create Tunnel برای برقراری تانل بین سرورهایتان افدام کنید.
 3.  می توانید تانل های بین دو سرور را از منوی manage tunnel مدیریت کنید.
@@ -17,7 +17,7 @@
 <img width="1175" height="600" alt="image" src="https://github.com/user-attachments/assets/a82fedfe-db78-4325-be1b-1dc8d5cf130c" />
 
 ## 🚀 نصب و اجرا
-    wget -O taha "https://raw.githubusercontent.com/ToolSeRF/TaHa-Direct-Reverse-Tunnel-Runner/main/taha?$(date +%s)" && chmod +x taha && bash ./taha
+    wget -O taha "https://raw.githubusercontent.com/ToolSeRF/TaHa-Direct-Reverse-Tunnel-Runner/main/v1/taha?$(date +%s)" && chmod +x taha && bash ./taha
 
 
 
@@ -126,7 +126,7 @@
 | `2+2` | `socks5+tcp` | `2+3` | `socks5+otls` | `2+4` | `socks5+icmp` |
 | `2+5` | `socks5+relay` |  |  |  |  |
 
-[مشاهده ی تمام ترکیب ها](https://raw.githubusercontent.com/ToolSeRF/TaHa-Direct-Reverse-Tunnel-Runner/refs/heads/main/all)
+[مشاهده ی تمام ترکیب ها](https://raw.githubusercontent.com/ToolSeRF/TaHa-Direct-Reverse-Tunnel-Runner/refs/heads/main/v1/all)
 
 
 
