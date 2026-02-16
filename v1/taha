@@ -4,7 +4,7 @@ set +u
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
 TAHA_SH="$DIR/taha.sh"
-TAHA_URL='https://raw.githubusercontent.com/ToolSeRF/TaHa-Direct-Reverse-Tunnel-Runner/main/taha.sh'
+TAHA_URL='https://raw.githubusercontent.com/ToolSeRF/TaHa-Direct-Reverse-Tunnel-Runner/main/v1/taha.sh'
 
 if [[ ! -f "$TAHA_SH" ]]; then
   echo "[INFO] taha.sh not found. Downloading from GitHub..."
