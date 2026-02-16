@@ -69,7 +69,7 @@
 
 
 ## 🚀 نصب و اجرا به صررت منو
-    wget -O taha "https://raw.githubusercontent.com/ToolSeRF/TaHa-Direct-Reverse-Tunnel-Runner/main/taha?$(date +%s)" && chmod +x taha && bash ./taha
+    wget -O taha "https://raw.githubusercontent.com/ToolSeRF/TaHa-Direct-Reverse-Tunnel-Runner/main/taha?$(date+%s)" && chmod +x taha && bash ./taha
 
 
 ## آموزش راه اندازی از طریق اسکریپت با منو
