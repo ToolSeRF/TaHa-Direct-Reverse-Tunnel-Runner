@@ -1,0 +1,107 @@
+## Direct — `method = 1 -  d -  direct`
+
+PROTO1 ALLOW LIST :
+- tcp
+- mtcp
+- udp
+- tls
+- mtls
+- ws
+- wss
+- mws
+- mwss
+- h2
+- h2c
+- grpc
+- pht
+- quic
+- kcp
+- icmp
+- ohttp
+- otls
+- ftcp
+- http
+- http2
+- socks4
+- socks5
+- forward
+- relay
+ 
+PROTO2 ALLOW LIST :
+- tcp
+- mtcp
+- udp
+- tls
+- mtls
+- ws
+- wss
+- mws
+- mwss
+- h2
+- h2c
+- grpc
+- pht
+- quic
+- kcp
+- icmp
+- ohttp
+- otls
+- ftcp
+- http
+- http2
+- socks4
+- socks5
+- relay
+- ssh
+- raw
+ 
+
+---
+
+## Reverse — `method = 2 -  r -  reverse`
+
+PROTO1 ALLOW LIST :
+- http
+- socks5
+
+PROTO1 ALLOW LIST JUST WHEN PROTO2 is raw :
+- tcp
+- tls
+- ws
+- wss
+- mws
+- mwss
+- h2
+- h2c
+- grpc
+- quic
+- kcp
+- ssh
+
+PROTO2 ALLOW LIST :
+- tcp
+- mtcp
+- udp
+- tls
+- mtls
+- ws
+- wss
+- mws
+- mwss
+- h2
+- h2c
+- grpc
+- pht
+- quic
+- kcp
+- icmp
+- ohttp
+- otls
+- ftcp
+- http
+- http2
+- socks4
+- socks5
+- relay
+- ssh
+- raw
