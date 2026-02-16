@@ -1909,7 +1909,7 @@ main_menu() {
 
         SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
         PANEL_SCRIPT="$SCRIPT_DIR/taha-webui.sh"
-        PANEL_URL="https://raw.githubusercontent.com/ToolSeRF/TaHa-Direct-Reverse-Tunnel-Runner/refs/heads/main/taha-webui.sh"
+        PANEL_URL="https://raw.githubusercontent.com/ToolSeRF/TaHa-Direct-Reverse-Tunnel-Runner/refs/heads/main/v1/taha-webui.sh"
 
         if [[ ! -f "$PANEL_SCRIPT" ]]; then
           add_log "Panel script not found. Downloading..."
