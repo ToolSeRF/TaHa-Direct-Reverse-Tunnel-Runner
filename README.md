@@ -14,7 +14,7 @@
 
 
 ## 🚀 پنل تحت وب، راه اندازی چندین تانل بین چندین سرور
-    wget -O taha-webui.sh "https://raw.githubusercontent.com/ToolSeRF/TaHa-Direct-Reverse-Tunnel-Runner/main/taha-webui.sh?$(date +%s)" && chmod +x taha-webui.sh && bash taha-webui.sh
+    wget -O taha-webui.sh "https://raw.githubusercontent.com/ToolSeRF/TaHa-Direct-Reverse-Tunnel-Runner/main/taha-webui.sh?$(date+%s)" && chmod +x taha-webui.sh && bash taha-webui.sh
 
 
 
