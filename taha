@@ -1,10 +1,37 @@
 #!/usr/bin/env bash
 set +e
 set +u
-
+TAHA_VER="20260217"
 DIR="$(cd "$(dirname "$0")" && pwd)"
 TAHA_SH="$DIR/taha.sh"
 TAHA_URL='https://raw.githubusercontent.com/ToolSeRF/TaHa-Direct-Reverse-Tunnel-Runner/main/taha.sh'
+
+if [[ "$1" == "-update" || "$1" == "--update" ]]; then
+  UPD="$DIR/update.sh"
+  UPD_URL="https://raw.githubusercontent.com/ToolSeRF/TaHa-Direct-Reverse-Tunnel-Runner/refs/heads/main/update.sh"
+
+  if [[ ! -f "$UPD" ]]; then
+    echo "[INFO] update.sh not found. Downloading..."
+    if command -v wget >/dev/null 2>&1; then
+      wget -q -O "$UPD" "${UPD_URL}?$(date +%s)" || {
+        echo "[ERROR] Download failed (wget)."
+        exit 1
+      }
+    elif command -v curl >/dev/null 2>&1; then
+      curl -fsSL "${UPD_URL}?$(date +%s)" -o "$UPD" || {
+        echo "[ERROR] Download failed (curl)."
+        exit 1
+      }
+    else
+      echo "[ERROR] Neither wget nor curl found. Install one of them."
+      exit 1
+    fi
+    chmod +x "$UPD" || true
+  fi
+
+  bash "$UPD"
+  exit $?
+fi
 
 if [[ ! -f "$TAHA_SH" ]]; then
   echo "[INFO] taha.sh not found. Downloading from GitHub..."
