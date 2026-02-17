@@ -4,6 +4,7 @@ set +e
 set +u
 export LC_ALL=C
 
+TAHA_VER="20260217"
 GOST_VER="3.2.7-nightly.20251122"
 GOST_BIN="/usr/local/bin/gost"
 SYS_DIR="/etc/systemd/system"
