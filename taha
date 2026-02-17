@@ -8,7 +8,7 @@ TAHA_URL='https://raw.githubusercontent.com/ToolSeRF/TaHa-Direct-Reverse-Tunnel-
 
 if [[ "$1" == "-update" || "$1" == "--update" ]]; then
   UPD="$DIR/update.sh"
-  UPD_URL="https://raw.githubusercontent.com/ToolSeRF/TaHa-Direct-Reverse-Tunnel-Runner/refs/heads/main/update.sh"
+  UPD_URL="https://raw.githubusercontent.com/ToolSeRF/TaHa-Direct-Reverse-Tunnel-Runner/main/update.sh"
 
   if [[ ! -f "$UPD" ]]; then
     echo "[INFO] update.sh not found. Downloading..."
