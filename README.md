@@ -71,6 +71,9 @@
 ## 🚀 نصب و اجرا به صررت منو
     wget -O taha "https://raw.githubusercontent.com/ToolSeRF/TaHa-Direct-Reverse-Tunnel-Runner/main/taha?$(date+%s)" && chmod +x taha && bash ./taha
 
+اگر بیس قدیمی دارید ابتدا آپدیتش کنید( از این به بعد خود پنل اگر ورژن قدیمی رو داشته باشید اتوماتیک چک و آپدیت میکنه)
+
+	wget https://raw.githubusercontent.com/ToolSeRF/TaHa-Direct-Reverse-Tunnel-Runner/main/update.sh && chmod +x update.sh && bash update.sh
 
 ## آموزش راه اندازی از طریق اسکریپت با منو
 0.  در هر دو سرور ابتدا با گزینه 1 هسته را نصب کنید.
