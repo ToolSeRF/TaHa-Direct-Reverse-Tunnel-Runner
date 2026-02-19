@@ -118,7 +118,7 @@ write_requirements() {
   log "Step 4/6: Writing requirements.txt ..."
   cat >"$PANEL_DIR/requirements.txt" <<'EOF'
 fastapi==0.115.6
-uvicorn[standard]==0.34.0
+uvicorn[standard]==0.33.0
 jinja2==3.1.5
 python-multipart==0.0.20
 paramiko==3.5.0
