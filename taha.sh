@@ -2083,7 +2083,7 @@ cli_params_to_query() {
       addkv_cli q "path"         "$(norm_path_token "$(csv_get "$csv" 2 "/GostTunel/Tunnel")")"
       ;;
 
-    quickcp|icmp)
+    quic|kcp|icmp)
       addkv_cli q "backlog"          "$(norm_int_token "$(csv_get "$csv" 0 "128")")"
       addkv_cli q "keepAlive"        "$(norm_bool_token "$(csv_get "$csv" 1 "false")")"
       addkv_cli q "ttl"              "$(norm_duration_s_token "$(csv_get "$csv" 2 "10")")"
